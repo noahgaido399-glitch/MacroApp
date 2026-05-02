@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "Macro Streak",
+    "slug": "macro-streak",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "macrostreak",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.local.macrostreak"
+    },
+    "android": {
+      "package": "com.local.macrostreak"
+    },
+    "web": {
+      "name": "Macro Streak",
+      "shortName": "MacroStreak",
+      "bundler": "metro",
+      "output": "single",
+      "display": "standalone",
+      "themeColor": "#080A0E",
+      "backgroundColor": "#080A0E",
+      "startUrl": ".",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-asset"
+    ]
+  }
+}
