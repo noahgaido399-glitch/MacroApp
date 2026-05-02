@@ -56,16 +56,17 @@ export function parseMacroForm(values: MacroFormValues) {
 
 type MacroFormProps = {
   initialItem?: FoodEntry | SavedMeal;
+  initialValues?: MacroFormValues;
   submitLabel: string;
   onSubmit: (values: MacroFormValues) => void;
 };
 
-export function MacroForm({ initialItem, submitLabel, onSubmit }: MacroFormProps) {
-  const [values, setValues] = useState(valuesFromMacroItem(initialItem));
+export function MacroForm({ initialItem, initialValues, submitLabel, onSubmit }: MacroFormProps) {
+  const [values, setValues] = useState(initialValues ?? valuesFromMacroItem(initialItem));
 
   useEffect(() => {
-    setValues(valuesFromMacroItem(initialItem));
-  }, [initialItem]);
+    setValues(initialValues ?? valuesFromMacroItem(initialItem));
+  }, [initialItem, initialValues]);
 
   const update = (key: keyof MacroFormValues, value: string) => {
     setValues((current) => ({ ...current, [key]: value }));
@@ -77,22 +78,22 @@ export function MacroForm({ initialItem, submitLabel, onSubmit }: MacroFormProps
       <View style={styles.row}>
         <View style={styles.flex}>
           <Field
-            keyboardType="numeric"
+            keyboardType="decimal-pad"
             label="Calories"
             onChangeText={(value) => update('calories', value)}
             value={values.calories}
           />
         </View>
         <View style={styles.flex}>
-          <Field keyboardType="numeric" label="Protein" onChangeText={(value) => update('protein', value)} value={values.protein} />
+          <Field keyboardType="decimal-pad" label="Protein" onChangeText={(value) => update('protein', value)} value={values.protein} />
         </View>
       </View>
       <View style={styles.row}>
         <View style={styles.flex}>
-          <Field keyboardType="numeric" label="Carbs" onChangeText={(value) => update('carbs', value)} value={values.carbs} />
+          <Field keyboardType="decimal-pad" label="Carbs" onChangeText={(value) => update('carbs', value)} value={values.carbs} />
         </View>
         <View style={styles.flex}>
-          <Field keyboardType="numeric" label="Fats" onChangeText={(value) => update('fats', value)} value={values.fats} />
+          <Field keyboardType="decimal-pad" label="Fats" onChangeText={(value) => update('fats', value)} value={values.fats} />
         </View>
       </View>
       <Field

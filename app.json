@@ -31,7 +31,14 @@
     },
     "plugins": [
       "expo-font",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Macro Streak to scan food barcodes.",
+          "barcodeScannerEnabled": true
+        }
+      ]
     ]
   }
 }
