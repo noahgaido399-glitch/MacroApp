@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, Modal, StyleSheet, Text, View } from 'react-native';
 import { BarcodeScanningResult, BarcodeType, CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -12,18 +12,29 @@ type BarcodeScannerModalProps = {
   onScanned: (barcode: string) => void;
 };
 
-const barcodeTypes: BarcodeType[] = ['ean13', 'ean8', 'upc_a', 'upc_e'];
+type BarcodeEvent = BarcodeScanningResult | { nativeEvent: BarcodeScanningResult };
+const barcodeTypes: BarcodeType[] = ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'code93', 'itf14'];
 
 export function BarcodeScannerModal({ visible, onClose, onScanned }: BarcodeScannerModalProps) {
   const [permission, requestPermission] = useCameraPermissions();
   const [locked, setLocked] = useState(false);
 
-  const handleScanned = (result: BarcodeScanningResult) => {
+  useEffect(() => {
+    if (visible) {
+      setLocked(false);
+    }
+  }, [visible]);
+
+  const handleScanned = (result: BarcodeEvent) => {
     if (locked) {
       return;
     }
+    const scan = 'nativeEvent' in result ? result.nativeEvent : result;
+    if (!scan.data) {
+      return;
+    }
     setLocked(true);
-    onScanned(result.data);
+    onScanned(scan.data);
   };
 
   const close = () => {
@@ -59,6 +70,9 @@ export function BarcodeScannerModal({ visible, onClose, onScanned }: BarcodeScan
               barcodeScannerSettings={{ barcodeTypes }}
               facing="back"
               onBarcodeScanned={locked ? undefined : handleScanned}
+              onMountError={(event) => {
+                Alert.alert('Camera issue', event.message);
+              }}
               style={styles.camera}
             />
             <View style={styles.scanFrame}>

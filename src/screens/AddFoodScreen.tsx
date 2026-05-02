@@ -4,6 +4,7 @@ import { Alert, StyleSheet, Text, View } from 'react-native';
 import { BarcodeScannerModal } from '../components/BarcodeScannerModal';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { Field } from '../components/Field';
 import { MacroForm, MacroFormValues, parseMacroForm } from '../components/MacroForm';
 import { Screen } from '../components/Screen';
 import { lookupFoodByBarcode } from '../services/foodLookup';
@@ -22,6 +23,7 @@ function makeId() {
 export function AddFoodScreen({ onSaved }: AddFoodScreenProps) {
   const { saveEntry } = useAppData();
   const [scannerVisible, setScannerVisible] = useState(false);
+  const [barcodeDraft, setBarcodeDraft] = useState('');
   const [lookupValues, setLookupValues] = useState<MacroFormValues | undefined>();
   const [lookupStatus, setLookupStatus] = useState('');
   const formKey = useMemo(() => JSON.stringify(lookupValues ?? 'manual'), [lookupValues]);
@@ -43,11 +45,17 @@ export function AddFoodScreen({ onSaved }: AddFoodScreenProps) {
     onSaved();
   };
 
-  const handleScanned = async (barcode: string) => {
+  const lookupBarcode = async (barcode: string) => {
+    const trimmed = barcode.trim();
+    if (!trimmed) {
+      Alert.alert('Barcode needed', 'Scan or enter the barcode number first.');
+      return;
+    }
     setScannerVisible(false);
-    setLookupStatus(`Looking up ${barcode}...`);
+    setBarcodeDraft(trimmed);
+    setLookupStatus(`Looking up ${trimmed}...`);
     try {
-      const result = await lookupFoodByBarcode(barcode);
+      const result = await lookupFoodByBarcode(trimmed);
       setLookupValues(result.values);
       setLookupStatus(`Found through ${result.source}. Review serving/macros before logging.`);
     } catch (error) {
@@ -63,6 +71,22 @@ export function AddFoodScreen({ onSaved }: AddFoodScreenProps) {
       <View style={styles.scanRow}>
         <Button icon="scan-outline" label="Scan Barcode" onPress={() => setScannerVisible(true)} />
       </View>
+      <Card>
+        <View style={styles.manualLookup}>
+          <View style={styles.barcodeField}>
+            <Field
+              keyboardType="numeric"
+              label="Barcode"
+              onChangeText={setBarcodeDraft}
+              placeholder="012345678905"
+              value={barcodeDraft}
+            />
+          </View>
+          <View style={styles.lookupButton}>
+            <Button icon="search-outline" label="Lookup" onPress={() => void lookupBarcode(barcodeDraft)} variant="secondary" />
+          </View>
+        </View>
+      </Card>
       {lookupStatus ? (
         <Card>
           <Text style={styles.lookupText}>{lookupStatus}</Text>
@@ -76,17 +100,29 @@ export function AddFoodScreen({ onSaved }: AddFoodScreenProps) {
           onSubmit={(values) => void logFood(values)}
         />
       </Card>
-      <BarcodeScannerModal visible={scannerVisible} onClose={() => setScannerVisible(false)} onScanned={(barcode) => void handleScanned(barcode)} />
+      <BarcodeScannerModal visible={scannerVisible} onClose={() => setScannerVisible(false)} onScanned={(barcode) => void lookupBarcode(barcode)} />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  barcodeField: {
+    flex: 1,
+  },
+  lookupButton: {
+    justifyContent: 'flex-end',
+    minWidth: 104,
+  },
   lookupText: {
     color: colors.muted,
     fontSize: 14,
     fontWeight: '700',
     lineHeight: 20,
+  },
+  manualLookup: {
+    alignItems: 'stretch',
+    flexDirection: 'row',
+    gap: 12,
   },
   scanRow: {
     gap: 10,
