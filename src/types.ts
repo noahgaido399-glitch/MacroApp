@@ -34,6 +34,12 @@ export type SavedMeal = {
   createdAt: string;
 };
 
+export type BodyWeightEntry = {
+  date: string;
+  weight: number;
+  createdAt: string;
+};
+
 export type DaySummary = {
   date: string;
   totals: MacroTotals;

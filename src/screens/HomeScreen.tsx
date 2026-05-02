@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { Field } from '../components/Field';
 import { MacroForm, parseMacroForm } from '../components/MacroForm';
 import { ProgressBar } from '../components/ProgressBar';
 import { Screen } from '../components/Screen';
@@ -19,13 +20,37 @@ type HomeScreenProps = {
 };
 
 export function HomeScreen({ onAddFood, onOpenMeals }: HomeScreenProps) {
-  const { entries, goals, removeEntry, saveEntry } = useAppData();
+  const { bodyWeights, entries, goals, removeBodyWeight, removeEntry, saveBodyWeight, saveEntry } = useAppData();
   const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null);
+  const [weightDraft, setWeightDraft] = useState('');
   const today = toDateKey();
   const todayEntries = useMemo(() => entries.filter((entry) => entry.date === today), [entries, today]);
   const totals = useMemo(() => sumEntries(todayEntries), [todayEntries]);
   const hitGoal = didHitGoal(totals, goals);
   const streaks = useMemo(() => calculateStreaks(entries, goals), [entries, goals]);
+  const todayWeight = useMemo(() => bodyWeights.find((entry) => entry.date === today), [bodyWeights, today]);
+  const previousWeight = useMemo(
+    () => [...bodyWeights].filter((entry) => entry.date < today).sort((a, b) => b.date.localeCompare(a.date))[0],
+    [bodyWeights, today],
+  );
+  const weightDelta = todayWeight && previousWeight ? todayWeight.weight - previousWeight.weight : null;
+
+  useEffect(() => {
+    setWeightDraft(todayWeight ? String(todayWeight.weight) : '');
+  }, [todayWeight]);
+
+  const saveTodayWeight = async () => {
+    const weight = Number(weightDraft);
+    if (Number.isNaN(weight) || weight <= 0) {
+      Alert.alert('Check bodyweight', 'Enter a bodyweight above zero.');
+      return;
+    }
+    await saveBodyWeight({
+      date: today,
+      weight,
+      createdAt: todayWeight?.createdAt ?? new Date().toISOString(),
+    });
+  };
 
   return (
     <Screen title="Macro Streak" subtitle={formatDayLabel(today)}>
@@ -46,6 +71,33 @@ export function HomeScreen({ onAddFood, onOpenMeals }: HomeScreenProps) {
           <ProgressBar label="Protein" value={totals.protein} goal={goals.protein} color={colors.protein} />
           <ProgressBar label="Carbs" value={totals.carbs} goal={goals.carbs} color={colors.carbs} />
           <ProgressBar label="Fats" value={totals.fats} goal={goals.fats} color={colors.fats} />
+        </View>
+      </Card>
+
+      <Card>
+        <View style={styles.weightHeader}>
+          <View>
+            <Text style={styles.kicker}>Bodyweight</Text>
+            <Text style={styles.weightValue}>{todayWeight ? `${todayWeight.weight.toFixed(1)} lb` : 'No weigh-in'}</Text>
+            <Text style={styles.goalText}>
+              {weightDelta === null
+                ? 'Log today to start tracking'
+                : `${weightDelta > 0 ? '+' : ''}${weightDelta.toFixed(1)} lb vs previous`}
+            </Text>
+          </View>
+          {todayWeight ? (
+            <Pressable onPress={() => void removeBodyWeight(today)} style={styles.iconButton}>
+              <Ionicons name="trash-outline" size={18} color={colors.danger} />
+            </Pressable>
+          ) : null}
+        </View>
+        <View style={styles.weightInputRow}>
+          <View style={styles.weightField}>
+            <Field keyboardType="decimal-pad" label="Today lb" value={weightDraft} onChangeText={setWeightDraft} placeholder="185.0" />
+          </View>
+          <View style={styles.weightSave}>
+            <Button icon="checkmark-outline" label="Save" onPress={() => void saveTodayWeight()} />
+          </View>
         </View>
       </Card>
 
@@ -300,5 +352,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  weightField: {
+    flex: 1,
+  },
+  weightHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  weightInputRow: {
+    alignItems: 'stretch',
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 14,
+  },
+  weightSave: {
+    justifyContent: 'flex-end',
+    minWidth: 96,
+  },
+  weightValue: {
+    color: colors.text,
+    fontSize: 30,
+    fontWeight: '900',
+    marginTop: 3,
   },
 });

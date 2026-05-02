@@ -5,16 +5,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../components/Card';
 import { ProgressBar } from '../components/ProgressBar';
 import { Screen } from '../components/Screen';
+import { WeightChart } from '../components/WeightChart';
 import { useAppData } from '../state/AppDataContext';
 import { colors } from '../theme';
 import { addDays, formatDayLabel, getRecentDateKeys, toDateKey } from '../utils/dates';
 import { didHitGoal, sumEntries } from '../utils/macros';
 
 export function HistoryScreen() {
-  const { entries, goals } = useAppData();
+  const { bodyWeights, entries, goals } = useAppData();
   const [selectedDate, setSelectedDate] = useState(toDateKey());
   const dateKeys = useMemo(() => getRecentDateKeys(21), []);
   const selectedEntries = useMemo(() => entries.filter((entry) => entry.date === selectedDate), [entries, selectedDate]);
+  const selectedWeight = useMemo(() => bodyWeights.find((entry) => entry.date === selectedDate), [bodyWeights, selectedDate]);
   const totals = useMemo(() => sumEntries(selectedEntries), [selectedEntries]);
   const hitGoal = didHitGoal(totals, goals);
 
@@ -39,10 +41,24 @@ export function HistoryScreen() {
       </View>
 
       <Card>
+        <View style={styles.weightHeader}>
+          <View>
+            <Text style={styles.weightTitle}>Bodyweight trend</Text>
+            <Text style={styles.weightSubtitle}>All recorded weigh-ins</Text>
+          </View>
+          <Text style={styles.weightCount}>{bodyWeights.length}</Text>
+        </View>
+        <WeightChart entries={bodyWeights} />
+      </Card>
+
+      <Card>
         <View style={styles.header}>
           <View>
             <Text style={styles.date}>{formatDayLabel(selectedDate)}</Text>
-            <Text style={styles.entryCount}>{selectedEntries.length} foods logged</Text>
+            <Text style={styles.entryCount}>
+              {selectedEntries.length} foods logged
+              {selectedWeight ? ` · ${selectedWeight.weight.toFixed(1)} lb` : ''}
+            </Text>
           </View>
           <View style={[styles.hitBadge, hitGoal && styles.hitBadgeGood]}>
             <Ionicons name={hitGoal ? 'checkmark' : 'close'} color={hitGoal ? '#071007' : colors.muted} size={18} />
@@ -152,5 +168,26 @@ const styles = StyleSheet.create({
   progressStack: {
     gap: 15,
     marginTop: 18,
+  },
+  weightCount: {
+    color: colors.accent,
+    fontSize: 24,
+    fontWeight: '900',
+  },
+  weightHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  weightSubtitle: {
+    color: colors.muted,
+    fontSize: 13,
+    marginTop: 3,
+  },
+  weightTitle: {
+    color: colors.text,
+    fontSize: 19,
+    fontWeight: '900',
   },
 });

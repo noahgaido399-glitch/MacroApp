@@ -22,7 +22,7 @@ export function Button({ label, onPress, variant = 'primary', icon }: ButtonProp
 const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 12,
     flexDirection: 'row',
     gap: 8,
     justifyContent: 'center',
@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   danger: {
-    backgroundColor: 'rgba(255, 107, 107, 0.14)',
+    backgroundColor: 'rgba(255, 107, 107, 0.12)',
     borderColor: 'rgba(255, 107, 107, 0.35)',
     borderWidth: 1,
   },
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: colors.text,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
   },
   pressed: {

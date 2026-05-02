@@ -1,5 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -23,19 +33,38 @@ const tabs: Array<{ key: TabKey; label: string; icon: keyof typeof Ionicons.glyp
 ];
 
 function AppShell() {
-  const [activeTab, setActiveTab] = useState<TabKey>('home');
+  const { width } = useWindowDimensions();
+  const pagerRef = useRef<ScrollView>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
   const { isReady, refresh } = useAppData();
+  const activeTab = tabs[activeIndex]?.key ?? 'home';
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  const screen = useMemo(() => {
-    switch (activeTab) {
+  useEffect(() => {
+    pagerRef.current?.scrollTo({ x: activeIndex * width, animated: false });
+  }, [activeIndex, width]);
+
+  const goToTab = (index: number) => {
+    setActiveIndex(index);
+    pagerRef.current?.scrollTo({ x: index * width, animated: true });
+  };
+
+  const handleMomentumEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / width);
+    if (nextIndex !== activeIndex && tabs[nextIndex]) {
+      setActiveIndex(nextIndex);
+    }
+  };
+
+  const renderScreen = (tab: TabKey) => {
+    switch (tab) {
       case 'home':
-        return <HomeScreen onAddFood={() => setActiveTab('add')} onOpenMeals={() => setActiveTab('meals')} />;
+        return <HomeScreen onAddFood={() => goToTab(1)} onOpenMeals={() => goToTab(2)} />;
       case 'add':
-        return <AddFoodScreen onSaved={() => setActiveTab('home')} />;
+        return <AddFoodScreen onSaved={() => goToTab(0)} />;
       case 'meals':
         return <SavedMealsScreen />;
       case 'history':
@@ -45,7 +74,9 @@ function AppShell() {
       default:
         return null;
     }
-  }, [activeTab]);
+  };
+
+  const screens = useMemo(() => tabs.map((tab) => ({ ...tab, screen: renderScreen(tab.key) })), [width]);
 
   if (!isReady) {
     return (
@@ -59,23 +90,42 @@ function AppShell() {
   return (
     <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
       <StatusBar style="light" />
-      <View style={styles.content}>{screen}</View>
-      <View style={styles.tabBar}>
-        {tabs.map((tab) => {
-          const isActive = tab.key === activeTab;
-          return (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ selected: isActive }}
-              key={tab.key}
-              onPress={() => setActiveTab(tab.key)}
-              style={[styles.tab, isActive && styles.tabActive]}
-            >
-              <Ionicons name={tab.icon} size={22} color={isActive ? colors.accent : colors.muted} />
-              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>
-            </Pressable>
-          );
-        })}
+      <ScrollView
+        ref={pagerRef}
+        horizontal
+        keyboardShouldPersistTaps="handled"
+        onMomentumScrollEnd={handleMomentumEnd}
+        pagingEnabled
+        scrollEventThrottle={16}
+        showsHorizontalScrollIndicator={false}
+        style={styles.content}
+      >
+        {screens.map((item) => (
+          <View key={item.key} style={[styles.page, { width }]}>
+            {item.screen}
+          </View>
+        ))}
+      </ScrollView>
+      <View style={styles.tabWrap}>
+        <View style={styles.tabBar}>
+          {tabs.map((tab, index) => {
+            const isActive = tab.key === activeTab;
+            return (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: isActive }}
+                key={tab.key}
+                onPress={() => goToTab(index)}
+                style={styles.tab}
+              >
+                <View style={[styles.iconShell, isActive && styles.iconShellActive]}>
+                  <Ionicons name={tab.icon} size={21} color={isActive ? colors.background : colors.muted} />
+                </View>
+                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -99,6 +149,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  page: {
+    flex: 1,
+  },
   loading: {
     alignItems: 'center',
     backgroundColor: colors.background,
@@ -110,31 +163,50 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 12,
   },
+  iconShell: {
+    alignItems: 'center',
+    borderRadius: 999,
+    height: 34,
+    justifyContent: 'center',
+    width: 42,
+  },
+  iconShellActive: {
+    backgroundColor: colors.accent,
+  },
   tabBar: {
-    backgroundColor: colors.surface,
-    borderTopColor: colors.border,
-    borderTopWidth: 1,
+    backgroundColor: colors.nav,
+    borderColor: colors.border,
+    borderRadius: 22,
+    borderWidth: 1,
     flexDirection: 'row',
-    paddingBottom: 8,
-    paddingHorizontal: 8,
-    paddingTop: 8,
+    padding: 7,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.28,
+    shadowRadius: 24,
   },
   tab: {
     alignItems: 'center',
-    borderRadius: 8,
     flex: 1,
-    gap: 2,
-    paddingVertical: 6,
-  },
-  tabActive: {
-    backgroundColor: colors.surfaceElevated,
+    gap: 4,
+    minWidth: 0,
   },
   tabLabel: {
     color: colors.muted,
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '800',
   },
   tabLabelActive: {
     color: colors.text,
+  },
+  tabWrap: {
+    backgroundColor: 'transparent',
+    bottom: 0,
+    left: 0,
+    paddingBottom: 10,
+    paddingHorizontal: 12,
+    paddingTop: 6,
+    position: 'absolute',
+    right: 0,
   },
 });

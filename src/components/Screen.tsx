@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
   content: {
     gap: 16,
     padding: spacing.screen,
-    paddingBottom: 28,
+    paddingBottom: 118,
   },
   header: {
     gap: 6,
@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.text,
-    fontSize: 30,
+    fontSize: 29,
     fontWeight: '900',
     letterSpacing: 0,
   },

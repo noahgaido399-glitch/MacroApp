@@ -1,20 +1,24 @@
 import { createContext, PropsWithChildren, useCallback, useContext, useMemo, useState } from 'react';
 
 import {
+  deleteBodyWeight,
   deleteFoodEntry,
   deleteSavedMeal,
+  getBodyWeights,
   getFoodEntries,
   getGoals,
   getSavedMeals,
   initDatabase,
   saveGoals,
+  upsertBodyWeight,
   upsertFoodEntry,
   upsertSavedMeal,
 } from '../data/database';
-import { FoodEntry, MacroGoals, SavedMeal } from '../types';
+import { BodyWeightEntry, FoodEntry, MacroGoals, SavedMeal } from '../types';
 import { toDateKey } from '../utils/dates';
 
 type AppDataContextValue = {
+  bodyWeights: BodyWeightEntry[];
   entries: FoodEntry[];
   goals: MacroGoals;
   isReady: boolean;
@@ -22,6 +26,8 @@ type AppDataContextValue = {
   removeEntry: (id: string) => Promise<void>;
   removeSavedMeal: (id: string) => Promise<void>;
   savedMeals: SavedMeal[];
+  removeBodyWeight: (date: string) => Promise<void>;
+  saveBodyWeight: (entry: BodyWeightEntry) => Promise<void>;
   saveEntry: (entry: FoodEntry) => Promise<void>;
   saveMeal: (meal: SavedMeal) => Promise<void>;
   setGoals: (goals: MacroGoals) => Promise<void>;
@@ -35,6 +41,7 @@ function makeId(prefix: string) {
 }
 
 export function AppDataProvider({ children }: PropsWithChildren) {
+  const [bodyWeights, setBodyWeights] = useState<BodyWeightEntry[]>([]);
   const [entries, setEntries] = useState<FoodEntry[]>([]);
   const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([]);
   const [goals, setGoalsState] = useState<MacroGoals>({ calories: 2500, protein: 180, carbs: 250, fats: 70 });
@@ -42,10 +49,16 @@ export function AppDataProvider({ children }: PropsWithChildren) {
 
   const refresh = useCallback(async () => {
     await initDatabase();
-    const [nextEntries, nextSavedMeals, nextGoals] = await Promise.all([getFoodEntries(), getSavedMeals(), getGoals()]);
+    const [nextEntries, nextSavedMeals, nextGoals, nextBodyWeights] = await Promise.all([
+      getFoodEntries(),
+      getSavedMeals(),
+      getGoals(),
+      getBodyWeights(),
+    ]);
     setEntries(nextEntries);
     setSavedMeals(nextSavedMeals);
     setGoalsState(nextGoals);
+    setBodyWeights(nextBodyWeights);
     setIsReady(true);
   }, []);
 
@@ -89,6 +102,22 @@ export function AppDataProvider({ children }: PropsWithChildren) {
     [refresh],
   );
 
+  const saveBodyWeight = useCallback(
+    async (entry: BodyWeightEntry) => {
+      await upsertBodyWeight(entry);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const removeBodyWeight = useCallback(
+    async (date: string) => {
+      await deleteBodyWeight(date);
+      await refresh();
+    },
+    [refresh],
+  );
+
   const logSavedMealToday = useCallback(
     async (meal: SavedMeal) => {
       await upsertFoodEntry({
@@ -110,27 +139,33 @@ export function AppDataProvider({ children }: PropsWithChildren) {
 
   const value = useMemo(
     () => ({
+      bodyWeights,
       entries,
       goals,
       isReady,
       logSavedMealToday,
       refresh,
+      removeBodyWeight,
       removeEntry,
       removeSavedMeal,
       savedMeals,
+      saveBodyWeight,
       saveEntry,
       saveMeal,
       setGoals,
     }),
     [
+      bodyWeights,
       entries,
       goals,
       isReady,
       logSavedMealToday,
       refresh,
+      removeBodyWeight,
       removeEntry,
       removeSavedMeal,
       savedMeals,
+      saveBodyWeight,
       saveEntry,
       saveMeal,
       setGoals,

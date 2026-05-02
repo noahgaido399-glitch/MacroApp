@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 
-import { FoodEntry, MacroGoals, MealCategory, SavedMeal } from '../types';
+import { BodyWeightEntry, FoodEntry, MacroGoals, MealCategory, SavedMeal } from '../types';
 import { defaultGoals } from '../utils/macros';
 
 const dbPromise = SQLite.openDatabaseAsync('macro-streak.db');
@@ -19,6 +19,12 @@ type FoodEntryRow = {
 };
 
 type SavedMealRow = Omit<FoodEntryRow, 'date'>;
+
+type BodyWeightRow = {
+  date: string;
+  weight: number;
+  created_at: string;
+};
 
 const seedMeals = [
   {
@@ -82,6 +88,14 @@ function rowToSavedMeal(row: SavedMealRow): SavedMeal {
   };
 }
 
+function rowToBodyWeight(row: BodyWeightRow): BodyWeightEntry {
+  return {
+    date: row.date,
+    weight: row.weight,
+    createdAt: row.created_at,
+  };
+}
+
 export async function initDatabase() {
   const db = await dbPromise;
   await db.execAsync(`
@@ -115,6 +129,12 @@ export async function initDatabase() {
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY NOT NULL,
       value TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS body_weights (
+      date TEXT PRIMARY KEY NOT NULL,
+      weight REAL NOT NULL,
+      created_at TEXT NOT NULL
     );
   `);
 
@@ -206,4 +226,24 @@ export async function upsertSavedMeal(meal: SavedMeal) {
 export async function deleteSavedMeal(id: string) {
   const db = await dbPromise;
   await db.runAsync('DELETE FROM saved_meals WHERE id = ?', [id]);
+}
+
+export async function getBodyWeights(): Promise<BodyWeightEntry[]> {
+  const db = await dbPromise;
+  const rows = await db.getAllAsync<BodyWeightRow>('SELECT * FROM body_weights ORDER BY date ASC');
+  return rows.map(rowToBodyWeight);
+}
+
+export async function upsertBodyWeight(entry: BodyWeightEntry) {
+  const db = await dbPromise;
+  await db.runAsync('INSERT OR REPLACE INTO body_weights (date, weight, created_at) VALUES (?, ?, ?)', [
+    entry.date,
+    entry.weight,
+    entry.createdAt,
+  ]);
+}
+
+export async function deleteBodyWeight(date: string) {
+  const db = await dbPromise;
+  await db.runAsync('DELETE FROM body_weights WHERE date = ?', [date]);
 }

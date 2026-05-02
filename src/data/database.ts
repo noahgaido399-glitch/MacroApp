@@ -1,9 +1,10 @@
-import { FoodEntry, MacroGoals, MealCategory, SavedMeal } from '../types';
+import { BodyWeightEntry, FoodEntry, MacroGoals, MealCategory, SavedMeal } from '../types';
 import { defaultGoals } from '../utils/macros';
 
 type WebStore = {
   foodEntries: FoodEntry[];
   savedMeals: SavedMeal[];
+  bodyWeights: BodyWeightEntry[];
   goals: MacroGoals;
   seeded: boolean;
 };
@@ -52,6 +53,7 @@ function makeEmptyWebStore(): WebStore {
   return {
     foodEntries: [],
     savedMeals: makeSeedMeals(),
+    bodyWeights: [],
     goals: defaultGoals,
     seeded: true,
   };
@@ -74,6 +76,7 @@ function readWebStore(): WebStore {
     const store: WebStore = {
       foodEntries: parsed.foodEntries ?? [],
       savedMeals: parsed.savedMeals?.length ? parsed.savedMeals : makeSeedMeals(),
+      bodyWeights: parsed.bodyWeights ?? [],
       goals: { ...defaultGoals, ...parsed.goals },
       seeded: parsed.seeded ?? true,
     };
@@ -140,4 +143,21 @@ export async function upsertSavedMeal(meal: SavedMeal) {
 export async function deleteSavedMeal(id: string) {
   const store = readWebStore();
   writeWebStore({ ...store, savedMeals: store.savedMeals.filter((meal) => meal.id !== id) });
+}
+
+export async function getBodyWeights(): Promise<BodyWeightEntry[]> {
+  return [...readWebStore().bodyWeights].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export async function upsertBodyWeight(entry: BodyWeightEntry) {
+  const store = readWebStore();
+  const nextWeights = [...store.bodyWeights.filter((item) => item.date !== entry.date), entry].sort((a, b) =>
+    a.date.localeCompare(b.date),
+  );
+  writeWebStore({ ...store, bodyWeights: nextWeights });
+}
+
+export async function deleteBodyWeight(date: string) {
+  const store = readWebStore();
+  writeWebStore({ ...store, bodyWeights: store.bodyWeights.filter((entry) => entry.date !== date) });
 }

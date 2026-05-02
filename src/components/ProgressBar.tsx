@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   track: {
     backgroundColor: colors.field,
     borderRadius: 999,
-    height: 9,
+    height: 7,
     overflow: 'hidden',
   },
   value: {
