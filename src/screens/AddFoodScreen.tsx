@@ -46,7 +46,7 @@ export function AddFoodScreen({ onSaved }: AddFoodScreenProps) {
   };
 
   const lookupBarcode = async (barcode: string) => {
-    const trimmed = barcode.trim();
+    const trimmed = barcode.replace(/\D/g, '');
     if (!trimmed) {
       Alert.alert('Barcode needed', 'Scan or enter the barcode number first.');
       return;
@@ -61,7 +61,7 @@ export function AddFoodScreen({ onSaved }: AddFoodScreenProps) {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Barcode lookup failed.';
       setLookupValues(undefined);
-      setLookupStatus('');
+      setLookupStatus(message);
       Alert.alert('Food not found', `${message}\n\nYou can still enter the food manually.`);
     }
   };

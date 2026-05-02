@@ -48,19 +48,40 @@ function rounded(value: number) {
 
 export async function lookupFoodByBarcode(barcode: string): Promise<FoodLookupResult> {
   const trimmedBarcode = barcode.trim();
-  const response = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(trimmedBarcode)}.json`, {
-    headers: {
-      Accept: 'application/json',
-      'User-Agent': 'MacroStreak/1.0 (local-mvp)',
-    },
-  });
+  const urls = [
+    `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(trimmedBarcode)}.json`,
+    `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(trimmedBarcode)}.json`,
+  ];
 
-  if (!response.ok) {
-    throw new Error('Food lookup failed. Check your connection and try again.');
+  let data: OpenFoodFactsResponse | null = null;
+  let networkError: unknown = null;
+
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Accept: 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        continue;
+      }
+
+      data = (await response.json()) as OpenFoodFactsResponse;
+      if (data.status === 1 && data.product) {
+        break;
+      }
+    } catch (error) {
+      networkError = error;
+    }
   }
 
-  const data = (await response.json()) as OpenFoodFactsResponse;
-  if (data.status !== 1 || !data.product) {
+  if (!data && networkError) {
+    throw new Error('Food lookup could not reach Open Food Facts. Check your connection and try again.');
+  }
+
+  if (!data || data.status !== 1 || !data.product) {
     throw new Error('No food found for this barcode.');
   }
 
